@@ -1,0 +1,106 @@
+[
+    {
+      "name": "Category",
+      "type": "STRING"
+    },
+    {
+      "name": "Scope",
+      "type": "STRING"
+    },
+    {
+      "name": "Rate_Plan_Status",
+      "type": "STRING"
+    },
+    {
+      "name": "Plan_Name",
+      "type": "STRING"
+    },
+    {
+      "name": "Rate_Plan_Offer_ID",
+      "type": "STRING"
+    },
+    {
+      "name": "Rate_Plan_Start_Date",
+      "type": "STRING"
+    },
+    {
+      "name": "Rate_Plan_End_Date",
+      "type": "STRING"
+    },
+    {
+      "name": "Region",
+      "type": "STRING"
+    },
+    {
+      "name": "Rate_Plan_Price_Point",
+      "type": "STRING"
+    },
+    {
+      "name": "Gigabyte",
+      "type": "STRING"
+    },
+    {
+      "name": "Criteria",
+      "type": "STRING"
+    },
+    {
+      "name": "Campaign",
+      "type": "STRING"
+    },
+    {
+      "name": "Voice_National_Minutes",
+      "type": "STRING"
+    },
+    {
+      "name": "Free_Long_Distance_Minutes",
+      "type": "STRING"
+    },
+    {
+      "name": "MMS_Units",
+      "type": "STRING"
+    },
+    {
+      "name": "SMS_Units",
+      "type": "STRING"
+    },
+    {
+      "name": "Retired_On_Date_Time",
+      "type": "STRING"
+    },
+    {
+      "name": "Removed_On_Date_Time",
+      "type": "STRING"
+    },
+    {
+      "name": "TAB",
+      "type": "STRING"
+    },
+    {
+      "name": "Plan_Validity_Status",
+      "type": "STRING"
+    },
+    {
+      "name": "Last_Operation_on_Catalog",
+      "type": "STRING"
+    },
+    {
+      "name": "Last_Update_Date",
+      "type": "STRING"
+    },
+    {
+      "name": "Last_Update_Time",
+      "type": "STRING"
+    },
+    {
+      "name": "Operator",
+      "type": "STRING"
+    },
+    {
+      "name": "Owner_Created_By",
+      "type": "STRING"
+    },
+    {
+      "name": "Comments",
+      "type": "STRING"
+    }
+  ]

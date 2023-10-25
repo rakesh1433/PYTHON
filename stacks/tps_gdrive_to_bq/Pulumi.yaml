@@ -1,0 +1,80 @@
+name: gsheet_to_bq
+runtime: yaml
+description: gsheet_example
+
+config:
+  builder:
+    type: string
+  project:
+    type: string
+  staging_expiry:
+    value: 2045-12-31
+    type: string
+
+variables:
+  datasetId: tps_teleport_gdrive_to_bq
+  location: northamerica-northeast1
+  table_ld_bq_schema:
+    fn::readFile: ./schema/ld_bq_table.json
+  table_ld_bq_schema_2:
+    fn::readFile: ./schema/ld_bq_table_2.json
+  table_ld_bq_schema_3:
+    fn::readFile: ./schema/ld_bq_table_3.json
+
+resources:
+  google_sheet_1:
+    type: gcp:bigquery:Table
+    properties:
+      datasetId: ${datasetId}
+      tableId: bq_ct_gtm_unique_rate_plans_table
+      deletionProtection: false
+      externalDataConfiguration:
+        autodetect: true
+        sourceFormat: GOOGLE_SHEETS
+        googleSheetsOptions:
+          skipLeadingRows: 1
+          range: Unique Rate Plans #!A1:C11 # Change this,format: sheet_name!top_left_cell_id:bottom_right_cell_id
+        sourceUris:
+          - https://docs.google.com/spreadsheets/d/1QCBYMiLmGa1vHoeiMiPme6Z83e_iJTibOP61HeQnsYk/edit#gid=0
+      schema: |   
+        ${table_ld_bq_schema}
+
+  google_sheet_2:
+    type: gcp:bigquery:Table
+    properties:
+      datasetId: ${datasetId}
+      tableId: bq_ct_gtm_unique_promotions_table
+      deletionProtection: false
+      externalDataConfiguration:
+        autodetect: true
+        sourceFormat: GOOGLE_SHEETS
+        googleSheetsOptions:
+          skipLeadingRows: 1
+          range: Unique Promotions #!A1:C11 # Change this,format: sheet_name!top_left_cell_id:bottom_right_cell_id
+        sourceUris:
+          - https://docs.google.com/spreadsheets/d/1QCBYMiLmGa1vHoeiMiPme6Z83e_iJTibOP61HeQnsYk/edit#gid=1847239227
+      schema: |   
+        ${table_ld_bq_schema_2}
+
+  google_sheet_3:
+    type: gcp:bigquery:Table
+    properties:
+      datasetId: ${datasetId}
+      tableId: bq_ct_gtm_applied_promo_table
+      deletionProtection: false
+      externalDataConfiguration:
+        autodetect: true
+        sourceFormat: GOOGLE_SHEETS
+        googleSheetsOptions:
+          skipLeadingRows: 1
+          range: Applied Promo #!A1:C11 # Change this,format: sheet_name!top_left_cell_id:bottom_right_cell_id
+        sourceUris:
+          - https://docs.google.com/spreadsheets/d/1QCBYMiLmGa1vHoeiMiPme6Z83e_iJTibOP61HeQnsYk/edit#gid=1668014848
+      schema: |   
+        ${table_ld_bq_schema_3}
+
+    options:
+      deleteBeforeReplace: true
+      replaceOnChanges:
+        - externalDataConfiguration.schema
+        - tableId
