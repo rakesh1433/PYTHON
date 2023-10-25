@@ -1,0 +1,52 @@
+name: gdrive_to_bq # change this
+runtime: yaml
+description: gsheet_example # change this
+
+config:
+  builder:
+    type: string
+  project:
+    type: string
+  staging_expiry:
+    value: 2045-12-31 # change this 
+    type: string
+
+variables:
+  process_nm: tps_teleport_gdrive_to_bq # change this
+  location: northamerica-northeast1
+  # "teleport shared drive" https://drive.google.com/drive/folders/1p1hzzDXWrOb0Y3f0pxsT4tOV3cSJnKNA
+
+resources:
+  # start - note: dataset object is just as an example, teams should organize datasets in their own parent folder
+  default_dataset:
+    type: gcp:bigquery:Dataset
+    properties:
+      datasetId: ${process_nm}
+      friendlyName: ${process_nm}
+      description: Example of Dataset for External Tables
+      location: ${location}
+      deleteContentsOnDestroy: true
+
+  dataset_iam_user:
+    type: gcp:bigquery:DatasetIamMember
+    properties:
+      project: ${project}
+      datasetId: ${default_dataset.datasetId}
+      role: roles/bigquery.dataViewer
+      member: user:rakesh.vinnakollu@telus.com # change this
+  # end - note: dataset object is just as an example, teams should organize datasets in their own parent folder
+  dataset_iam_grp:
+    type: gcp:bigquery:DatasetIamMember
+    properties:
+      project: ${project}
+      datasetId: ${default_dataset.datasetId}
+      role: roles/bigquery.dataViewer
+      member: group:dlpace_bi@telus.com # change this
+
+  dataset_iam_sa:
+    type: gcp:bigquery:DatasetIamMember
+    properties:
+      project: ${project}
+      datasetId: ${default_dataset.datasetId}
+      role: roles/bigquery.dataViewer
+      member: serviceAccount:bilayer-sa@${project}.iam.gserviceaccount.com
