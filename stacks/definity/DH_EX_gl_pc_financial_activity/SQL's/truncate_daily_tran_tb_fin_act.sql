@@ -1,0 +1,1 @@
+truncate table `@curated_project.gwpc.pc_daily_transaction_staging`;
