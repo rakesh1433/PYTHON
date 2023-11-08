@@ -1,0 +1,175 @@
+name: report_dump_yaml
+runtime: yaml
+description: All required resources to run report_dump_job process flow
+
+config:
+  builder:
+    type: string
+  project:
+    type: string
+  staging_expiry:
+  
+    value: 2998-12-31
+    type: string
+
+variables:
+  process_nm: spark_report_dump # change thiss
+  process_bucket: ${project}-bkt-report-dump-sparkjob
+  sanitized_process_nm:
+    Fn::str:replace:
+      string: ${process_nm}
+      old: "_"
+      new: "-"
+
+  location: northamerica-northeast1
+  service_account: serviceAccount:bilayer-sa@${project}.iam.gserviceaccount.com
+  schedule: 0 0 10 * * # change this - see: https://crontab.guru/
+  #pause_status: {% if PROJECT_TYPE == "bi-stg" -%} false {%- elif PROJECT_TYPE == "bi-srv" -%} false {%- endif %} # change this
+  time_zone: UTC # change this - see: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
+
+  image_uri: northamerica-northeast1-docker.pkg.dev/cio-workbench-image-np-0ddefe/bi-platform/spark_custom:latest
+  spark_scripts_bkt: spark-scripts-${project_sha}
+  script_path: gs://spark-scripts-${project_sha}/tps_telport_reports_dump/report_dump_job/report_dump/main.py
+
+  spark_subnetwork_nm: spark-subnet-pr
+
+  bq_jar_uri: gs://spark-lib/bigquery/spark-bigquery-with-dependencies_2.12-0.23.2.jar
+  #bq_spark_src_dataset: ${process_nm}
+  #bq_spark_src_table: bq_src_table
+
+  landing_bucket: ${project}-${sanitized_process_nm.result}
+  #spark_custom_image: northamerica-northeast1-docker.pkg.dev/cio-workbench-image-np-0ddefe/bi-platform/bi-tps-wrkflw/images/spark_custom:latest
+
+resources:
+  # define bucket
+  bkt_processing_report_dump:
+      type: gcp:storage:Bucket
+      properties:
+        name: ${process_bucket}
+        location: northamerica-northeast1
+        storageClass: STANDARD
+        project: ${project}
+        forceDestroy: true
+        uniformBucketLevelAccess: true
+      options:
+        replaceOnChanges:
+          - name 
+  
+  bkt_processing_dump_iam_user:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_processing_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: user:rakesh.vinnakollu@telus.com # change this 
+
+  bkt_processing_report_dump_iam_grp:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_processing_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: group:dlpace_bi@telus.com
+    options:
+      dependsOn:
+        - ${bkt_processing_report_dump}
+
+  bkt_processing_dump_iam_sa:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_processing_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: ${service_account}
+    options:
+      dependsOn:
+        - ${bkt_processing_report_dump}
+
+  
+  bkt_dest_report_dump:   
+      type: gcp:storage:Bucket
+      properties:
+        name: ${landing_bucket}
+        location: northamerica-northeast1
+        storageClass: STANDARD
+        project: ${project}
+        forceDestroy: true
+        uniformBucketLevelAccess: true
+      options:
+        replaceOnChanges:
+          - name  
+
+  bkt_dest_dump_iam_user:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_dest_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: user:rakesh.vinnakollu@telus.com # change this        
+
+  bkt_dest_report_dump_iam_grp:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_dest_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: group:dlpace_bi@telus.com
+    options:
+      dependsOn:
+        - ${bkt_dest_report_dump}
+
+  bkt_dest_dump_iam_sa:
+    type: gcp:storage/bucketIAMMember:BucketIAMMember
+    properties:
+      bucket: ${bkt_dest_report_dump.name}
+      role: roles/storage.objectAdmin
+      member: ${service_account}
+    options:
+      dependsOn:
+        - ${bkt_dest_report_dump}
+
+ #workflow start here:
+  workflow_report_dump:
+    type: gcp:workflows:Workflow
+    properties:
+      region: ${location}
+      name: wf_${process_nm}_pipeline
+      description: wf_${process_nm}
+      serviceAccount: ${builder}
+      sourceContents: |
+        - init:
+            assign:
+              - uuid: $${sys.get_env("GOOGLE_CLOUD_WORKFLOW_EXECUTION_ID")}
+              - projectId: ${project}
+              - region: ${location}
+              - dataprocBatchApi: "dataproc.googleapis.com/v1"
+              - dataprocBatchApiUrl: "https://dataproc.googleapis.com/v1/projects/${project}/locations/${location}/batches"
+              - batchId: Rakesh-dump-report
+        - report_dump_update:  
+            call: http.post
+            args:
+              url: $${dataprocBatchApiUrl}
+              body:
+                labels:
+                  process_nm: ${process_nm}
+                runtimeConfig:
+                  containerImage: ${image_uri}
+                  version: "2.1"
+                pysparkBatch:
+                  mainPythonFileUri: ${script_path}
+                  args:
+
+                    - ${landing_bucket}
+                
+                environmentConfig:
+                  executionConfig:
+                    serviceAccount: ${builder}
+                    staging_bucket: ${process_bucket}
+                    networkTags:
+                      - spark
+                    subnetworkUri: https://www.googleapis.com/compute/v1/projects/${project}/regions/${location}/subnetworks/spark-subnet-pr
+              auth:
+                type: OAuth2
+               
+            result: batch_output
+        - returnOutput:
+            return: $${"Batch UUID is:" + " " + batch_output["body"]["metadata"]["batchUuid"]}
+    options:
+      deleteBeforeReplace: true
+      dependsOn:
+        - ${bkt_dest_report_dump}  
